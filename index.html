@@ -317,9 +317,9 @@ function renderFim() {
   const a = state.a, primeiro = (a.nome || '').split(' ')[0];
   const linhas = [['Evento', a.evento], ['Data', textoData(a)], ['Crianças', a.criancas], ['Local', a.local]];
   app.innerHTML = `<section class="screen">
-    <div class="done-icon" aria-hidden="true">🎉</div>
-    <h2>Oba, ${esc(primeiro)}! Recebemos seu pedido.</h2>
-    <p class="sub" style="margin:0">Toque no botão abaixo pra falar com a gente no WhatsApp e receber seu orçamento agora:</p>
+    <div class="done-icon" aria-hidden="true">👇</div>
+    <h2>Quase lá, ${esc(primeiro)}!</h2>
+    <p class="sub" style="margin:0">Último passo: toque no botão abaixo pra enviar seu pedido no WhatsApp. Suas respostas já vão prontas na mensagem.</p>
     <a class="btn wa" id="wa" href="${linkWhats(a)}" target="_blank" rel="noopener">${ICON_WA} Receber orçamento no WhatsApp</a>
     <dl class="summary">${linhas.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
     <div class="center"><button class="ghost" type="button" id="refazer">← Corrigir respostas</button></div>
