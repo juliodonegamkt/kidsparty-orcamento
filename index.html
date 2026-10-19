@@ -79,6 +79,13 @@
   .opts.grid2 { grid-template-columns: 1fr 1fr; }
   .opt { appearance: none; cursor: pointer; text-align: left; width: 100%; display: flex; align-items: center; gap: 12px; font: 700 16px/1.25 var(--font-body); color: var(--fg); background: var(--surface); border: 2px solid var(--line); border-radius: 16px; padding: 15px 14px; transition: border-color .15s, background .15s; min-width: 0; }
   .opt .emo { flex: none; font-size: 22px; line-height: 1; }
+  .opts.grid2 .opt:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .opt .grow { flex: 1; min-width: 0; }
+  .opt .box { flex: none; width: 22px; height: 22px; border-radius: 7px; border: 2px solid #b8c6f5; display: grid; place-items: center; }
+  .opt[aria-pressed="true"] .box { background: var(--royal); border-color: var(--royal); }
+  .opt[aria-pressed="true"] .box::after { content: ""; width: 9px; height: 5px; border: solid #fff; border-width: 0 0 2.5px 2.5px; transform: translateY(-1px) rotate(-45deg); }
+  .hero-foto { margin: 0; border-radius: 22px; overflow: hidden; border: 4px solid var(--sun); box-shadow: 0 10px 0 -2px var(--royal); aspect-ratio: 16 / 12; max-width: 100%; background: #dfe6ff; }
+  .hero-foto img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; display: block; }
   .opt:hover { border-color: #b8c6f5; }
   .opt[aria-pressed="true"] { border-color: var(--royal); background: #eaf0ff; }
 
@@ -130,11 +137,13 @@ const CONFIG = {
 /* ================================================== */
 
 const STEPS = [
-  { id: 'evento', type: 'single', title: 'Qual é o tipo de evento?', grid: true,
-    options: [['🎂', 'Festa infantil'], ['🏫', 'Evento escolar'], ['🏢', 'Condomínio'], ['💼', 'Corporativo'], ['💍', 'Casamento'], ['🏨', 'Hotel / Resort']] },
-  { id: 'data', type: 'data', title: 'Qual a data do evento?', sub: 'Assim já vemos se a data está livre na agenda.' },
+  { id: 'evento', type: 'single', title: 'Qual é a ocasião do evento?', grid: true,
+    options: [['🎂', 'Aniversário infantil'], ['🏫', 'Festa na escola'], ['🏢', 'Condomínio'], ['💍', 'Casamento'], ['💼', 'Corporativo'], ['🏨', 'Hotel / Resort'], ['✨', 'Outra ocasião']] },
   { id: 'criancas', type: 'single', title: 'Quantas crianças, mais ou menos?',
     options: [['👧', 'Até 15'], ['👫', '16 a 30'], ['🧒', '31 a 60'], ['🎉', 'Mais de 60']] },
+  { id: 'servicos', type: 'multi', title: 'O que não pode faltar?', sub: 'Pode marcar mais de um.',
+    options: [['🤸', 'Recreação e gincanas'], ['🎨', 'Pintura facial e balões'], ['🧪', 'Oficinas (slime, tie-dye…)'], ['🎁', 'Pacote completo']] },
+  { id: 'data', type: 'data', title: 'Qual a data do evento?', sub: 'Assim já vemos se a data está livre na agenda.' },
   { id: 'local', type: 'local', title: 'Onde vai ser o evento?' },
   { id: 'contato', type: 'contato', title: 'Pra quem enviamos o orçamento?' }
 ];
@@ -187,6 +196,7 @@ function mensagem(a) {
     '',
     `*Nome:* ${a.nome}`,
     `*Evento:* ${a.evento}`,
+    `*Quero:* ${(a.servicos || []).join(', ')}`,
     `*Data:* ${textoData(a)}`,
     `*Crianças:* ${a.criancas}`,
     `*Local:* ${a.local}`
@@ -198,7 +208,7 @@ function enviarLead(a) {
   if (state.enviado) return; state.enviado = true;
   const payload = { data_envio: new Date().toISOString(), classificacao: classificar(a), nome: a.nome,
     whatsapp: a.whatsapp.replace(/\D/g, ''), evento: a.evento, data_evento: a.semData ? '' : a.data,
-    criancas: a.criancas, local: a.local, pagina: location.origin + location.pathname, ...utms() };
+    criancas: a.criancas, servicos: (a.servicos || []).join(', '), local: a.local, pagina: location.origin + location.pathname, ...utms() };
   if (CONFIG.WEBHOOK_URL) {
     try { fetch(CONFIG.WEBHOOK_URL, { method: 'POST', mode: 'no-cors', keepalive: true, headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) }).catch(() => {}); } catch (e) {}
   }
@@ -218,7 +228,12 @@ function render() {
   const pct = Math.round((state.step / total) * 100);
   let corpo = '', continuar = false;
 
-  if (s.type === 'single') {
+  if (s.type === 'multi') {
+    continuar = true;
+    const sel = a[s.id] || [];
+    corpo = `<div class="opts">` + s.options.map(([e, o]) =>
+      `<button class="opt multi" type="button" data-v="${esc(o)}" aria-pressed="${sel.includes(o)}"><span class="emo" aria-hidden="true">${e}</span><span class="grow">${esc(o)}</span><span class="box" aria-hidden="true"></span></button>`).join('') + '</div><div class="err" id="err"></div>';
+  } else if (s.type === 'single') {
     corpo = `<div class="opts ${s.grid ? 'grid2' : ''}">` + s.options.map(([e, o]) =>
       `<button class="opt" type="button" data-v="${esc(o)}" aria-pressed="${a[s.id] === o}"><span class="emo" aria-hidden="true">${e}</span>${esc(o)}</button>`).join('') + '</div>';
   } else if (s.type === 'data') {
@@ -253,7 +268,13 @@ function render() {
       ${continuar ? `<button class="btn" type="button" id="continuar">${s.type === 'contato' ? 'Ver meu orçamento' : 'Continuar'} →</button>` : ''}
     </div></section>`;
 
-  app.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+  app.querySelectorAll('.opt.multi').forEach(b => b.onclick = () => {
+    const v = b.dataset.v; const sel = a[s.id] || [];
+    a[s.id] = sel.includes(v) ? sel.filter(x => x !== v) : [...sel, v];
+    b.setAttribute('aria-pressed', a[s.id].includes(v));
+    document.getElementById('err').textContent = '';
+  });
+  app.querySelectorAll('.opt:not(.multi)').forEach(b => b.onclick = () => {
     a[s.id] = b.dataset.v;
     app.querySelectorAll('.opt').forEach(x => x.setAttribute('aria-pressed', x === b));
     setTimeout(() => { state.step++; render(); }, 220);
@@ -278,6 +299,7 @@ function render() {
 
 function avancar(s) {
   const a = state.a, err = document.getElementById('err');
+  if (s.type === 'multi' && !(a[s.id] || []).length) { err.textContent = 'Marque pelo menos uma opção.'; return; }
   if (s.type === 'data') {
     if (!a.semData && !a.data) { document.getElementById('data').setAttribute('aria-invalid', 'true'); err.textContent = 'Escolha a data ou marque que ainda não tem data definida.'; return; }
     if (!a.semData && a.data < hojeISO()) { err.textContent = 'Essa data já passou. Escolha uma data a partir de hoje.'; return; }
@@ -299,14 +321,15 @@ function avancar(s) {
 }
 
 function renderHero() {
-  app.innerHTML = `<section class="screen" style="justify-content:center;flex:1">
+  app.innerHTML = `<section class="screen">
+    <figure class="hero-foto"><img src="equipe.jpg" alt="Equipe de recreadores da Kids Party com uniforme azul" width="771" height="726"></figure>
     <span class="badge">Orçamento grátis</span>
     <h1>Onde tem criança, a Kids Party <em>leva diversão!</em></h1>
-    <p class="lead">Recreação para festas infantis, escolas, condomínios, empresas e casamentos. Responda 4 perguntinhas e receba seu orçamento no WhatsApp.</p>
+    <p class="lead">Recreação para aniversários, escolas, condomínios, empresas e casamentos. Responda 5 perguntinhas e receba seu orçamento no WhatsApp.</p>
     <ul class="checks">
       <li><i aria-hidden="true">🎈</i> Recreadores animados e experientes</li>
       <li><i aria-hidden="true">🎨</i> Oficinas de slime, pintura facial, balões e muito mais</li>
-      <li><i aria-hidden="true">⭐</i> Diversão garantida do começo ao fim</li>
+      <li><i aria-hidden="true">⭐</i> Mais de 450 eventos animados, atendimento humano e sem compromisso</li>
     </ul>
     <button class="btn" type="button" id="comecar">Quero meu orçamento →</button>
   </section>`;
@@ -315,7 +338,7 @@ function renderHero() {
 
 function renderFim() {
   const a = state.a, primeiro = (a.nome || '').split(' ')[0];
-  const linhas = [['Evento', a.evento], ['Data', textoData(a)], ['Crianças', a.criancas], ['Local', a.local]];
+  const linhas = [['Evento', a.evento], ['Quero', (a.servicos || []).join(', ')], ['Data', textoData(a)], ['Crianças', a.criancas], ['Local', a.local]];
   app.innerHTML = `<section class="screen">
     <div class="done-icon" aria-hidden="true">👇</div>
     <h2>Quase lá, ${esc(primeiro)}!</h2>
