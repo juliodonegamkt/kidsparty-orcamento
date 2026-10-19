@@ -186,7 +186,7 @@
 /* ================== CONFIGURAÇÃO ================== */
 const CONFIG = {
   WHATSAPP: '5511914078950',  // WhatsApp da Kids Party (55 + DDD + número)
-  WEBHOOK_URL: '',            // opcional: entrada de leads do CRM
+  WEBHOOK_URL: 'https://kidsparty-crm.vercel.app/api/site', // entrada de leads do CRM da Kids Party (vira card "Novo")
   PIXEL_ID: '3356084818034951' // Pixel de kidspartyrecreacao (PageView, Lead, Contact)
 };
 /* ================================================== */
@@ -436,9 +436,9 @@ function renderFim() {
   const a = state.a, primeiro = (a.nome || '').split(' ')[0];
   const linhas = [['Evento', a.evento], ['Quero', (a.servicos || []).join(', ')], ['Data', textoData(a)], ['Crianças', a.criancas], ['Local', a.local]];
   app.innerHTML = `<section class="screen">
-    <div class="done-icon" aria-hidden="true">👇</div>
-    <h2>Quase lá, ${esc(primeiro)}!</h2>
-    <p class="sub" style="margin:0">Último passo: toque no botão abaixo pra enviar seu pedido no WhatsApp. Suas respostas já vão prontas na mensagem.</p>
+    <div class="done-icon" aria-hidden="true">🎉</div>
+    <h2>Oba, ${esc(primeiro)}! Recebemos seu pedido.</h2>
+    <p class="sub" style="margin:0">Nossa equipe vai te chamar no WhatsApp em breve. Quer adiantar? Fale agora com a gente, suas respostas já vão prontas na mensagem:</p>
     <a class="btn wa" id="wa" href="${linkWhats(a)}" target="_blank" rel="noopener">${ICON_WA} Receber orçamento no WhatsApp</a>
     <dl class="summary">${linhas.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
     <div class="center"><button class="ghost" type="button" id="refazer">← Corrigir respostas</button></div>
